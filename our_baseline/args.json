@@ -1,0 +1,20 @@
+{
+    "project": "Wandb-Project-Name",
+    "seed": 42,
+    "epochs": 10,
+    "dataset": "combined",  
+    "target": "agegroup",      
+    "augmentation_original": "BaseAugmentationForOriginal",
+    "augmentation_aaf": "BaseAugmentationForAAF",
+    "batch_size": 128,
+    "model": "VGG",        
+    "model_mask": "VGG",
+    "model_gender": "VGG",
+    "model_age": "RESNET152",
+    "model_mask_dir": "./results/mask/005_acc99.92%.ckpt",
+    "model_gender_dir": "./results/gender/012_f197.44%.ckpt",
+    "model_age_dir": "./results/age/013_f177.78%.ckpt",
+    "optimizer": "Adam",
+    "lr": 0.0001,
+    "criterion": "cross_entropy"
+}
