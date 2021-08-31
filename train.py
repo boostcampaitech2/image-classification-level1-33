@@ -1,73 +1,155 @@
-import argparse
-import collections
-import torch
+import os
+import random
+from tqdm import tqdm, tqdm_notebook
+
+from importlib import import_module
+
+
+import pandas as pd
+from PIL import Image
 import numpy as np
-import data_loader.data_loaders as module_data
-import model.loss as module_loss
-import model.metric as module_metric
-import model.model as module_arch
-from parse_config import ConfigParser
-from trainer import Trainer
-from utils import prepare_device
+
+import torch
+import torchvision
+import torch.nn as nn
+import torch.optim as optim
+import torch.nn.functional as F
+from torchvision import models, transforms, utils
+
+from torch.utils.data import Dataset, DataLoader, random_split, SubsetRandomSampler, WeightedRandomSampler
+from sklearn.metrics import f1_score
+# 현재 OS 및 라이브러리 버전 체크 체크
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+import wandb
+
+import json
+import easydict
+
+from dataset import load_dataset
+
+def train(args):
+    
+    # model save 경로 지정하기
+    save_dir = f"./results/{args.target}"
+    os.makedirs(save_dir, exist_ok=True)
+    
+    # 데이터셋 로드하기
+    trn_dataset = load_dataset(dataset=args.dataset, target=args.target, train=True)
+    val_dataset = load_dataset(dataset=args.dataset, target=args.target, train=False)
+
+    transform_original = getattr(import_module("dataset"), args.augmentation_original) # 원래 데이터셋에 대한 augmentation
+    transform_aaf = getattr(import_module("dataset"), args.augmentation_aaf)           # 추가 데이터셋에 대한 augmentation
+    transform = {
+        'original': transform_original(),
+        'aaf': transform_aaf()
+    }
+
+    trn_dataset.set_transform(transform)
+    val_dataset.set_transform(transform)
+
+    trn_loader = DataLoader(trn_dataset, batch_size=args.batch_size, shuffle=True, num_workers=2)
+    val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=True, num_workers=2)
+    
+    num_class = len(trn_dataset.classes)
+    model_module = getattr(import_module("model"), args.model)
+    model = model_module(num_class=num_class).to(device)
+    
+    # Weighted Cross Entroy Loss
+    weights = [1-n/sum(trn_dataset.count) for n in trn_dataset.count]
+    weights = torch.FloatTensor(weights).to(device)
+    criterion = nn.CrossEntropyLoss(weight=weights).cuda()
+    
+    # optimizer
+    optimizer_module = getattr(import_module("torch.optim"), args.optimizer)
+    optimizer = optimizer_module(model.parameters(), lr=args.lr)
+    
+    # Scheduler
+    scheduler = optim.lr_scheduler.LambdaLR(optimizer=optimizer, lr_lambda=lambda epoch: 0.95**epoch)
+    
+    wandb.init(
+        project=args.project, 
+        config={
+        "learning_rate": args.lr,
+        "architecture": args.model,
+        "dataset": args.dataset,
+        }
+    )   
+    
+    best_val_acc = 0.0
+    best_val_f1 = 0.0
+    
+    epochs = args.epochs
+    
+    # Training Start!
+    print("Start Training!!")
+    for epoch in range(epochs):
+        running_loss = 0.0
+
+        total = 0
+        correct = 0
+        lr = scheduler.get_last_lr()[0]
+
+        model.train()
+        for inputs, labels in tqdm(trn_loader):
+            inputs = inputs.to(device)
+            labels = labels.to(device)
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+            running_loss += loss.item()
+
+            # Accuracy 계산
+            _, pred = torch.max(outputs,1)
+            total += labels.size(0)
+            correct += (pred==labels).sum().item()
 
 
-# fix random seeds for reproducibility
-SEED = 123
-torch.manual_seed(SEED)
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
-np.random.seed(SEED)
+        scheduler.step()
+        acc = correct/total
+        print(f"[TRN]EPOCH:{epoch+1}, LR:{lr}, loss:{running_loss/len(trn_loader):.7f}, acc:{100*acc:.2f}%")
 
-def main(config):
-    logger = config.get_logger('train')
+        model.eval()
+        with torch.no_grad():
+            total = 0
+            correct = 0
+            f1 = 0.0
+            for inputs, labels in val_loader:
+                inputs = inputs.to(device)
+                labels = labels.to(device)
 
-    # setup data_loader instances
-    data_loader = config.init_obj('data_loader', module_data)
-    valid_data_loader = data_loader.split_validation()
+                outputs = model(inputs)
 
-    # build model architecture, then print to console
-    model = config.init_obj('arch', module_arch)
-    logger.info(model)
+                # Accuracy 계산 
+                _, preds = torch.max(outputs,1)
+                total += labels.size(0)
+                correct += (preds==labels).sum().item()
 
-    # prepare for (multi-device) GPU training
-    device, device_ids = prepare_device(config['n_gpu'])
-    model = model.to(device)
-    if len(device_ids) > 1:
-        model = torch.nn.DataParallel(model, device_ids=device_ids)
+                f1 += f1_score(preds.cpu().numpy(), labels.cpu().numpy(), average='macro')
+            val_acc = correct/total
+            print(f"[VAL]EPOCH:{epoch+1}, f1:{f1/len(val_loader):.3f}, val_acc:{100*val_acc:.2f}%")
 
-    # get function handles of loss and metrics
-    criterion = getattr(module_loss, config['loss'])
-    metrics = [getattr(module_metric, met) for met in config['metrics']]
+            f1 = f1/len(val_loader)
+            
+            # 모델 저장
+            if f1 > best_val_f1:
+                print("New Best Model for F1 Score! saving the model...")
+                torch.save(model.state_dict(), f"{save_dir}/{args.model}_epoch{epoch:03}_f1_{f1:4.2%}.ckpt")
+                best_val_f1 = f1
 
-    # build optimizer, learning rate scheduler. delete every lines containing lr_scheduler for disabling scheduler
-    trainable_params = filter(lambda p: p.requires_grad, model.parameters())
-    optimizer = config.init_obj('optimizer', torch.optim, trainable_params)
-    lr_scheduler = config.init_obj('lr_scheduler', torch.optim.lr_scheduler, optimizer)
+            if val_acc > best_val_acc:
+                if f1==best_val_f1: continue
+                print("New Best Model for Acc Score! saving the model...")
+                torch.save(model.state_dict(), f"{save_dir}/{args.model}_epoch{epoch:03}_acc_{val_acc:4.2%}.ckpt")
+                best_val_acc = val_acc       
 
-    trainer = Trainer(model, criterion, metrics, optimizer,
-                      config=config,
-                      device=device,
-                      data_loader=data_loader,
-                      valid_data_loader=valid_data_loader,
-                      lr_scheduler=lr_scheduler)
-
-    trainer.train()
-
-
-if __name__ == '__main__':
-    args = argparse.ArgumentParser(description='PyTorch Template')
-    args.add_argument('-c', '--config', default=None, type=str,
-                      help='config file path (default: None)')
-    args.add_argument('-r', '--resume', default=None, type=str,
-                      help='path to latest checkpoint (default: None)')
-    args.add_argument('-d', '--device', default=None, type=str,
-                      help='indices of GPUs to enable (default: all)')
-
-    # custom cli options to modify configuration from default values given in json file.
-    CustomArgs = collections.namedtuple('CustomArgs', 'flags type target')
-    options = [
-        CustomArgs(['--lr', '--learning_rate'], type=float, target='optimizer;args;lr'),
-        CustomArgs(['--bs', '--batch_size'], type=int, target='data_loader;args;batch_size')
-    ]
-    config = ConfigParser.from_args(args, options)
-    main(config)
+        wandb.log({"acc":acc, "loss":running_loss/len(trn_loader), "val_acc":val_acc, "f1":f1})
+    wandb.finish()
+    
+if __name__=='__main__':
+    with open('./args.json','r') as f:
+        args = easydict.EasyDict(json.load(f))
+    train(args)
