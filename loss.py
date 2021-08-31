@@ -24,14 +24,14 @@ class FocalLoss(nn.Module):
 
 
 class LabelSmoothingLoss(nn.Module):
-    def __init__(self, classes=3, smoothing=0.2, dim=-1):
+    def __init__(self, classes=3, smoothing=0.0, dim=-1):
         super(LabelSmoothingLoss, self).__init__()
         self.confidence = 1.0 - smoothing
         self.smoothing = smoothing
         self.cls = classes
         self.dim = dim
 
-    def forward(self, pred, target):
+    def forward(self, pred, target, weight=[]):
         pred = pred.log_softmax(dim=self.dim)
         with torch.no_grad():
             true_dist = torch.zeros_like(pred)
@@ -48,7 +48,7 @@ class LabelSmoothingLoss(nn.Module):
                     true_dist[i][target_num-1] = self.smoothing/2
             #true_dist.fill_(self.smoothing / (self.cls - 1))
             true_dist.scatter_(1, target.data.unsqueeze(1), self.confidence)
-        return torch.mean(torch.sum(-true_dist * pred, dim=self.dim))
+        return torch.mean(torch.sum(-true_dist * weight * pred, dim=self.dim))/torch.sum(weight)
 
 
 # https://gist.github.com/SuperShinyEyes/dcc68a08ff8b615442e3bc6a9b55a354
