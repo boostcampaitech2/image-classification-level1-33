@@ -15,6 +15,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 from torchvision import models, transforms, utils
+from loss import create_criterion
 
 from torch.utils.data import Dataset, DataLoader, random_split, SubsetRandomSampler, WeightedRandomSampler
 from sklearn.metrics import f1_score
@@ -58,7 +59,7 @@ def train(args):
     # Weighted Cross Entroy Loss
     weights = [1-n/sum(trn_dataset.count) for n in trn_dataset.count]
     weights = torch.FloatTensor(weights).to(device)
-    criterion = nn.CrossEntropyLoss(weight=weights).cuda()
+    criterion = create_criterion(args.criterion, weight = weights).cuda()
     
     # optimizer
     optimizer_module = getattr(import_module("torch.optim"), args.optimizer)
@@ -122,6 +123,8 @@ def train(args):
                 labels = labels.to(device)
 
                 outputs = model(inputs)
+
+                
 
                 # Accuracy 계산 
                 _, preds = torch.max(outputs,1)
