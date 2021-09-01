@@ -116,3 +116,4 @@ args.json
 results/
 wandb/
 *.ipynb
+testing.py
