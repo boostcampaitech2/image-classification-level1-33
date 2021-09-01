@@ -34,3 +34,13 @@ class RESNET152(torch.nn.Module):
         out = self.resnet152(x)
         out = self.classifier(out)
         return out
+    
+class ViT(nn.Module):
+    def __init__(self, num_class):
+        super(ViT, self).__init__()
+        
+        self.vit = timm.create_model('vit_base_patch32_224', pretrained=True, num_classes=num_class)
+    
+    def forward(self, x):
+        out = self.vit(x)
+        return out
