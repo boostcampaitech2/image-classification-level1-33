@@ -17,7 +17,7 @@ TEST_DATA_DIR = '/opt/ml/input/data/eval'
 path = {
     'original': ORIGINAL_DATA_DIR,
     'aaf': AAF_DATA_DIR,
-    'test': TEST_DATA_DIR
+    'test': TEST_DATA_DIR  # for psudo labeling
 }
 
 
@@ -192,12 +192,14 @@ def load_dataset(dataset, target, train):
     transform_original_tst = AlbumentationForOriginalTst()
     transform_aaf_trn = AlbumentationForAAFTrn()
     transform_aaf_tst = AlbumentationForAAFTst()
+    transform_test = AlbumentationForOriginalTrn()
+
     transform = {
         'original_trn': transform_original_trn,
         'original_tst': transform_original_tst,
         'aaf_trn': transform_aaf_trn,
         'aaf_tst': transform_aaf_tst,
-        # 'test': transform_test
+        'test_trn': transform_test
     }
 
 #     transform_original = BaseAugmentationForOriginal()
