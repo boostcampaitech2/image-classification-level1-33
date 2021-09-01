@@ -66,7 +66,7 @@ def train(args):
         trn_dataset, batch_size=args.batch_size, shuffle=True, num_workers=2)
     val_loader = DataLoader(
         val_dataset, batch_size=args.batch_size, shuffle=True, num_workers=2)
-
+    
     num_class = len(trn_dataset.classes)
     model_module = getattr(import_module("model"), args.model)
     model = model_module(num_class=num_class).to(device)
@@ -74,8 +74,9 @@ def train(args):
     # Weighted Cross Entroy Loss
     weights = [1-n/sum(trn_dataset.count) for n in trn_dataset.count]
     weights = torch.FloatTensor(weights).to(device)
-    criterion = nn.CrossEntropyLoss(weight=weights).cuda()
-
+    
+    criterion = create_criterion(args.criterion, weight = weights).cuda()
+    
     # optimizer
     optimizer_module = getattr(import_module("torch.optim"), args.optimizer)
     optimizer = optimizer_module(model.parameters(), lr=args.lr)
@@ -140,9 +141,10 @@ def train(args):
                 labels = labels.to(device)
 
                 outputs = model(inputs)
+                
+                # Accuracy 계산 
+                _, preds = torch.max(outputs,1)
 
-                # Accuracy 계산
-                _, preds = torch.max(outputs, 1)
                 total += labels.size(0)
                 correct += (preds == labels).sum().item()
 

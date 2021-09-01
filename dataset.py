@@ -12,10 +12,12 @@ import numpy as np
 
 ORIGINAL_DATA_DIR = '/opt/ml/input/data/train/images'
 AAF_DATA_DIR = '/opt/ml/input/data2/images'
+TEST_DATA_DIR = '/opt/ml/input/data/eval'
 
 path = {
     'original': ORIGINAL_DATA_DIR,
-    'aaf': AAF_DATA_DIR
+    'aaf': AAF_DATA_DIR,
+    'test' : TEST_DATA_DIR
 }
 
 
@@ -164,8 +166,20 @@ class AlbumentationForAAFTst():
     def __call__(self, image):
         return self.transform()
 
-
-def load_dataset(dataset, target, train):
+=======
+class BaseAugmentationForTEST:
+    def __init__(self):
+        self.transform = transforms.Compose([
+            Resize((224,224), Image.BILINEAR),
+            ToTensor(),
+            Normalize(mean=(0.5, 0.5, 0.5), std=(0.2, 0.2, 0.2)),
+        ])
+    def __call__(self, image):
+        return self.transform(image)
+      
+      
+    
+def load_dataset(dataset,target,train):
     '''
     dataset : 'original', 'aaf', 'combined' 중 선택
     target  : 'mask', 'gender', 'agegroup' 중 선택
@@ -180,8 +194,15 @@ def load_dataset(dataset, target, train):
         'original_trn': transform_original_trn,
         'original_tst': transform_original_tst,
         'aaf_trn': transform_aaf_trn,
-        'aaf_tst': transform_aaf_tst
-    }
+        'aaf_tst': transform_aaf_tst,
+        'test' : transform_test}
+
+#     transform_original = BaseAugmentationForOriginal()
+#     transform_aaf = BaseAugmentationForAAF()
+#     transform_test = BaseAugmentationForTEST()
+#     transform = {
+#         'original': transform_original,
+#         'aaf': transform_aaf}
 
     print("loading dataset...")
     return MaskDataset(path, dataset, target, train, transform)
