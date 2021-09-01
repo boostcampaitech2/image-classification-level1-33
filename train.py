@@ -19,6 +19,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 from torchvision import models, transforms, utils
+from loss import create_criterion
 
 from torch.utils.data import Dataset, DataLoader, random_split, SubsetRandomSampler, WeightedRandomSampler
 from sklearn.metrics import f1_score
