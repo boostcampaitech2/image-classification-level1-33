@@ -113,3 +113,6 @@ __MACOSX/
 
 # args.json 
 args.json
+results/
+wandb/
+*.ipynb
