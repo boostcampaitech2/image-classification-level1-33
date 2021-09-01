@@ -30,3 +30,4 @@ args.json에 대한 설명입니다.
 "optimizer": "Adam",
 "lr": 0.0001,
 "criterion": "cross_entropy"
+
