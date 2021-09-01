@@ -59,7 +59,7 @@ def train(args):
     # Weighted Cross Entroy Loss
     weights = [1-n/sum(trn_dataset.count) for n in trn_dataset.count]
     weights = torch.FloatTensor(weights).to(device)
-    criterion = create_criterion(args.criterion)
+    criterion = create_criterion(args.criterion, weight = weights).cuda()
     
     # optimizer
     optimizer_module = getattr(import_module("torch.optim"), args.optimizer)
@@ -97,7 +97,7 @@ def train(args):
             labels = labels.to(device)
             optimizer.zero_grad()
             outputs = model(inputs)
-            loss = criterion(outputs, labels, weights)
+            loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
 
