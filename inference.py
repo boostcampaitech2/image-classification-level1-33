@@ -122,7 +122,7 @@ def inference(args):
             all_predictions.append(pred_class)
 
     submission['ans'] = all_predictions
-    submission.to_csv('./submission.csv', index=False)
+    submission.to_csv('./submission_0901.csv', index=False)
     print('test inference is done!')
 
 

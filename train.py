@@ -176,10 +176,16 @@ def train(args):
             f1 = f1/len(val_loader)
 
             # 모델 저장
+            # if f1 > best_val_f1:
+            # print("New Best Model for F1 Score! saving the model...")
+            # torch.save(model.state_dict(
+            # ), f"{save_dir}/{args.model}_epoch{epoch:03}_f1_{f1:4.2%}.ckpt")
+            # best_val_f1 = f1
+
+            print("saving the Every model...")
+            torch.save(model.state_dict(
+            ), f"{save_dir}/{args.model}_epoch{epoch:03}_f1_{f1:4.2%}.ckpt")
             if f1 > best_val_f1:
-                print("New Best Model for F1 Score! saving the model...")
-                torch.save(model.state_dict(
-                ), f"{save_dir}/{args.model}_epoch{epoch:03}_f1_{f1:4.2%}.ckpt")
                 best_val_f1 = f1
 
             # if val_acc > best_val_acc:
