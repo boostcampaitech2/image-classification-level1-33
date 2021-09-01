@@ -8,10 +8,12 @@ import pandas as pd
 
 ORIGINAL_DATA_DIR = '/opt/ml/input/data/train/images'
 AAF_DATA_DIR = '/opt/ml/input/data2/images'
+TEST_DATA_DIR = '/opt/ml/input/data/eval'
 
 path = {
     'original': ORIGINAL_DATA_DIR,
-    'aaf': AAF_DATA_DIR
+    'aaf': AAF_DATA_DIR,
+    'test' : TEST_DATA_DIR
 }
 
 class MaskDataset(Dataset):
@@ -86,6 +88,16 @@ class BaseAugmentationForAAF:
         ])
     def __call__(self, image):
         return self.transform(image)
+
+class BaseAugmentationForTEST:
+    def __init__(self):
+        self.transform = transforms.Compose([
+            Resize((224,224), Image.BILINEAR),
+            ToTensor(),
+            Normalize(mean=(0.5, 0.5, 0.5), std=(0.2, 0.2, 0.2)),
+        ])
+    def __call__(self, image):
+        return self.transform(image)
     
 def load_dataset(dataset,target,train):
     '''
@@ -95,9 +107,11 @@ def load_dataset(dataset,target,train):
     '''
     transform_original = BaseAugmentationForOriginal()
     transform_aaf = BaseAugmentationForAAF()
+    transform_test = BaseAugmentationForTEST()
     transform = {
         'original': transform_original,
-        'aaf': transform_aaf
+        'aaf': transform_aaf,
+        'test' : transform_test
     }
     
     print("loading dataset...")

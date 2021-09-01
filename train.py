@@ -41,9 +41,11 @@ def train(args):
 
     transform_original = getattr(import_module("dataset"), args.augmentation_original) # 원래 데이터셋에 대한 augmentation
     transform_aaf = getattr(import_module("dataset"), args.augmentation_aaf)           # 추가 데이터셋에 대한 augmentation
+    transform_test = getattr(import_module("dataset"), args.augmentation_test)         # 테스트 데이터셋에 대한 augmentation
     transform = {
         'original': transform_original(),
-        'aaf': transform_aaf()
+        'aaf': transform_aaf(),
+        'test' : transform_test()
     }
 
     trn_dataset.set_transform(transform)
