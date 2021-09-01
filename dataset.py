@@ -71,7 +71,7 @@ class MaskDataset(Dataset):
             else:
                 image = self.transform[f'{dataset}_tst'].transform(image=image)
              # 여기서 if 문으로 잘 설정해주자 original_trn, aaf_trn
-
+            image = image['image']  # albumentation 특징
         return image, label
 
     def set_transform(self, transform):
@@ -114,7 +114,7 @@ class AlbumentationForOriginalTrn():
                 A.Cutout(num_holes=16, max_h_size=10,
                          max_w_size=10, fill_value=0, p=1.0)
             ]),
-            A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.2, 0.2, 0.2)),
+            A.Normalize(mean=(0.548, 0.504, 0.479), std=(0.237, 0.247, 0.246)),
             ToTensorV2()
         ])
 
@@ -132,7 +132,7 @@ class AlbumentationForAAFTrn():
                 A.Cutout(num_holes=16, max_h_size=10,
                          max_w_size=10, fill_value=0, p=1.0)
             ]),
-            A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.2, 0.2, 0.2)),
+            A.Normalize(mean=(0.548, 0.504, 0.479), std=(0.237, 0.247, 0.246)),
             ToTensorV2()
         ])
 
@@ -145,7 +145,7 @@ class AlbumentationForOriginalTst():
         self.transform = A.Compose([
             A.CenterCrop(350, 350),
             A.Resize(224, 224),
-            A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.2, 0.2, 0.2)),
+            A.Normalize(mean=(0.548, 0.504, 0.479), std=(0.237, 0.247, 0.246)),
             ToTensorV2()
         ])
 
@@ -157,7 +157,7 @@ class AlbumentationForAAFTst():
     def __init__(self):
         self.transform = A.Compose([
             A.Resize(224, 224),
-            A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.2, 0.2, 0.2)),
+            A.Normalize(mean=(0.548, 0.504, 0.479), std=(0.237, 0.247, 0.246)),
             ToTensorV2()
         ])
 

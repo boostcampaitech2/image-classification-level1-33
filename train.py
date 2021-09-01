@@ -83,15 +83,15 @@ def train(args):
     scheduler = optim.lr_scheduler.LambdaLR(
         optimizer=optimizer, lr_lambda=lambda epoch: 0.95**epoch)
 
-    # wandb.init(
-    #     project=args.project,
-    #     entity=args.entity,
-    #     config={
-    #         "learning_rate": args.lr,
-    #         "architecture": args.model,
-    #         "dataset": args.dataset,
-    #     }
-    # )
+    wandb.init(
+        project=args.project,
+        entity=args.entity,
+        config={
+            "learning_rate": args.lr,
+            "architecture": args.model,
+            "dataset": args.dataset,
+        }
+    )
 
     best_val_acc = 0.0
     best_val_f1 = 0.0

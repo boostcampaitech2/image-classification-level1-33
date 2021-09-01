@@ -1,9 +1,11 @@
 import os
 import json
+from albumentations.pytorch.transforms import img_to_tensor
 import easydict
 
 import pandas as pd
 from PIL import Image
+import numpy as np
 
 import torch
 import torch.nn as nn
@@ -17,6 +19,7 @@ from torchvision.transforms import Resize, ToTensor, Normalize
 
 device = torch.device('cuda')
 
+
 class TestDataset(Dataset):
     def __init__(self, img_paths, transform):
         self.img_paths = img_paths
@@ -26,7 +29,9 @@ class TestDataset(Dataset):
         image = Image.open(self.img_paths[index])
 
         if self.transform:
-            image = self.transform(image)
+            image = np.array(image)
+            image = self.transform(image=image)
+            image = image['image']
         return image
 
     def __len__(self):
@@ -42,17 +47,21 @@ def inference(args):
     image_dir = os.path.join(test_dir, 'images')
 
     # Test Dataset 클래스 객체를 생성하고 DataLoader를 만듭니다.
-    image_paths = [os.path.join(image_dir, img_id) for img_id in submission.ImageID]
-    
-    transform = getattr(import_module('dataset'), args.augmentation_original)()
-    
+    image_paths = [os.path.join(image_dir, img_id)
+                   for img_id in submission.ImageID]
+
+    transform = getattr(import_module('dataset'),
+                        args.augmentation_original)()
+    transform = transform.transform
+
     dataset = TestDataset(image_paths, transform)
-    loader = DataLoader(dataset,shuffle=False)
+    loader = DataLoader(dataset, shuffle=False)
     print("데이터셋 로드 완료")
-    
+
     # model 불러오기
     model_mask = getattr(import_module('model'), args.model_mask)(num_class=3)
-    model_gender = getattr(import_module('model'), args.model_gender)(num_class=2)
+    model_gender = getattr(import_module(
+        'model'), args.model_gender)(num_class=2)
     model_age = getattr(import_module('model'), args.model_age)(num_class=3)
     print(f"model_mask: {args.model_mask}")
     print(f"model_gender: {args.model_gender}")
@@ -69,31 +78,31 @@ def inference(args):
     model_mask.eval()
     model_gender.eval()
     model_age.eval()
-    
+
     preds2class = {
-        "000":0,
-        "001":1,
-        "002":2,
-        "010":3,
-        "011":4,
-        "012":5,
-        "100":6,
-        "101":7,
-        "102":8,
-        "110":9,
-        "111":10,
-        "112":11,
-        "200":12,
-        "201":13,
-        "202":14,
-        "210":15,
-        "211":16,
-        "212":17
+        "000": 0,
+        "001": 1,
+        "002": 2,
+        "010": 3,
+        "011": 4,
+        "012": 5,
+        "100": 6,
+        "101": 7,
+        "102": 8,
+        "110": 9,
+        "111": 10,
+        "112": 11,
+        "200": 12,
+        "201": 13,
+        "202": 14,
+        "210": 15,
+        "211": 16,
+        "212": 17
     }
-    
+
     all_predictions = []
     for image in tqdm(loader):
-        #print(image.shape)
+        # print(image.shape)
         with torch.no_grad():
             image = image.to(device)
             out_mask = model_mask(image)
@@ -104,20 +113,21 @@ def inference(args):
             pred_gender = out_gender.argmax(dim=-1).cpu().numpy()
             pred_age = out_age.argmax(dim=-1).cpu().numpy()
 
-            pred_total = "" 
-            for pred in [int(pred_mask),int(pred_gender),int(pred_age)]:
+            pred_total = ""
+            for pred in [int(pred_mask), int(pred_gender), int(pred_age)]:
                 pred_total += str(pred)
-            #print(pred_total)
+            # print(pred_total)
 
             pred_class = preds2class[pred_total]
             all_predictions.append(pred_class)
 
     submission['ans'] = all_predictions
     submission.to_csv('./submission.csv', index=False)
-    print('test inference is done!')    
-    
-if __name__=='__main__':
-    with open('./args.json','r') as f:
+    print('test inference is done!')
+
+
+if __name__ == '__main__':
+    with open('./args.json', 'r') as f:
         args = easydict.EasyDict(json.load(f))
-        
+
     inference(args)
