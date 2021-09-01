@@ -17,7 +17,7 @@ TEST_DATA_DIR = '/opt/ml/input/data/eval'
 path = {
     'original': ORIGINAL_DATA_DIR,
     'aaf': AAF_DATA_DIR,
-    'test' : TEST_DATA_DIR
+    'test': TEST_DATA_DIR
 }
 
 
@@ -69,8 +69,10 @@ class MaskDataset(Dataset):
         image = np.array(image)
         if self.transform:
             if self.train:
+                # albumentation에서만 동작하는 코드입니다.
                 image = self.transform[f'{dataset}_trn'].transform(image=image)
             else:
+                # albumentation에서만 동작하는 코드입니다.
                 image = self.transform[f'{dataset}_tst'].transform(image=image)
              # 여기서 if 문으로 잘 설정해주자 original_trn, aaf_trn
             image = image['image']  # albumentation 특징
@@ -166,20 +168,20 @@ class AlbumentationForAAFTst():
     def __call__(self, image):
         return self.transform()
 
-=======
+
 class BaseAugmentationForTEST:
     def __init__(self):
         self.transform = transforms.Compose([
-            Resize((224,224), Image.BILINEAR),
+            Resize((224, 224), Image.BILINEAR),
             ToTensor(),
             Normalize(mean=(0.5, 0.5, 0.5), std=(0.2, 0.2, 0.2)),
         ])
+
     def __call__(self, image):
         return self.transform(image)
-      
-      
-    
-def load_dataset(dataset,target,train):
+
+
+def load_dataset(dataset, target, train):
     '''
     dataset : 'original', 'aaf', 'combined' 중 선택
     target  : 'mask', 'gender', 'agegroup' 중 선택
@@ -195,7 +197,8 @@ def load_dataset(dataset,target,train):
         'original_tst': transform_original_tst,
         'aaf_trn': transform_aaf_trn,
         'aaf_tst': transform_aaf_tst,
-        'test' : transform_test}
+        # 'test': transform_test
+    }
 
 #     transform_original = BaseAugmentationForOriginal()
 #     transform_aaf = BaseAugmentationForAAF()
