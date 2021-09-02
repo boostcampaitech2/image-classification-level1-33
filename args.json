@@ -1,0 +1,21 @@
+{
+    "project": "age",
+    "seed": 42,
+    "epochs": 10,
+    "dataset": "combined_test",  
+    "target": "agegroup",      
+    "augmentation_original": "BaseAugmentationForOriginal",
+    "augmentation_aaf": "BaseAugmentationForAAF",
+    "augmentation_test": "BaseAugmentationForTEST",
+    "batch_size": 64,
+    "model": "RESNET152",        
+    "model_mask": "RESNET152",
+    "model_gender": "VGG",
+    "model_age": "RESNET152",
+    "model_mask_dir": "./results/mask/vRESNET152_epoch007_acc_99.98%.ckpt",
+    "model_gender_dir": "./results/gender/VGG_epoch009_f1_97.81%.ckpt",
+    "model_age_dir": "./results/agegroup/RESNET152_epoch006_acc_81.88%.ckpt",
+    "optimizer": "Adam",
+    "lr": 0.0001,
+    "criterion": "label_smoothing"
+}
