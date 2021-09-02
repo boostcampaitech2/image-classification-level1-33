@@ -85,7 +85,7 @@ class MaskDataset(Dataset):
 class BaseAugmentationForOriginal:
     def __init__(self):
         self.transform = transforms.Compose([
-            CenterCrop(350),
+            # CenterCrop(350),
             Resize((224, 224), Image.BILINEAR),
             ToTensor(),
             Normalize(mean=(0.5, 0.5, 0.5), std=(0.2, 0.2, 0.2)),
@@ -110,7 +110,7 @@ class BaseAugmentationForAAF:
 class AlbumentationForOriginalTrn():
     def __init__(self):
         self.transform = A.Compose([
-            A.CenterCrop(350, 350),
+            # A.CenterCrop(350, 350),
             A.Resize(224, 224),
             A.OneOf([
                 A.GaussNoise(var_limit=(1000, 1600), p=1.0),
@@ -147,7 +147,7 @@ class AlbumentationForAAFTrn():
 class AlbumentationForOriginalTst():
     def __init__(self):
         self.transform = A.Compose([
-            A.CenterCrop(350, 350),
+            # A.CenterCrop(350, 350),
             A.Resize(224, 224),
             A.Normalize(mean=(0.548, 0.504, 0.479), std=(0.237, 0.247, 0.246)),
             ToTensorV2()
