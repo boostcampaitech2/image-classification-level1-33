@@ -642,7 +642,7 @@ class CustomDataset_3(Dataset):
         self.org_dir = '/opt/ml/input/data/train/images'
         self.aaf_dir = '/opt/ml/input/data2/images/aligned'
         self.test_dir = '/opt/ml/input/data/eval/images'
-        self.test_data = pd.read_csv("csv/df_train_for_test.csv")
+        self.test_data = pd.read_csv("csv/df_train_for_test_idx.csv")
         self.mean = mean
         self.std = std
         self.val_ratio = val_ratio
