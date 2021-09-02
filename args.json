@@ -17,5 +17,6 @@
     "model_age_dir": "./results/agegroup/RESNET152_epoch006_acc_81.88%.ckpt",
     "optimizer": "Adam",
     "lr": 0.0001,
-    "criterion": "label_smoothing"
+    "criterion": "label_smoothing",
+    "kfold_num": 5
 }
