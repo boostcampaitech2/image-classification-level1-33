@@ -40,7 +40,7 @@ class TestDataset(Dataset):
 
 def inference(args):
     # 테스트 데이터셋 폴더 경로
-    test_dir = '/opt/ml/input/data/eval'
+    test_dir = '/opt/ml/mask_classification/input/data/eval'
 
     # meta 데이터와 이미지 경로를 불러옵니다.
     submission = pd.read_csv(os.path.join(test_dir, 'info.csv'))

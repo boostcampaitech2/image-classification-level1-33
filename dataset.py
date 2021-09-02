@@ -16,24 +16,24 @@ from typing import Tuple, List
 from fractions import Fraction as frac
 from pandas_streaming.df import train_test_apart_stratify
 
-
 def is_image_file(filename):
     return any(filename.endswith(extension) for extension in IMG_EXTENSIONS)
-
 
 IMG_EXTENSIONS = [
     ".jpg", ".JPG", ".jpeg", ".JPEG", ".png",
     ".PNG", ".ppm", ".PPM", ".bmp", ".BMP",
 ]
 
-ORIGINAL_DATA_DIR = '/opt/ml/input/data/train/images'
-AAF_DATA_DIR = '/opt/ml/input/data2/images'
-TEST_DATA_DIR = '/opt/ml/input/data/eval'
+ORIGINAL_DATA_DIR = '/opt/ml/mask_classification/input/data/train/images'
+AAF_DATA_DIR = '/opt/ml/mask_classification/input/data2/images'
+TEST_DATA_DIR = '/opt/ml/mask_classification/input/data/eval'
+CROP_DATA_DIR = '/opt/ml/mask_classification/input/data3'
 
 path = {
     'original': ORIGINAL_DATA_DIR,
     'aaf': AAF_DATA_DIR,
-    'test': TEST_DATA_DIR  # for psudo labeling
+    'test': TEST_DATA_DIR,  # for psudo labeling
+    'crop': CROP_DATA_DIR
 }
 
 
@@ -82,17 +82,18 @@ class MaskDataset(Dataset):
             label = self.classes.index(item['gender'])
         if self.target == 'agegroup':
             label = self.classes.index(item['agegroup'])
+        # image = np.array(image)
 
-        image = np.array(image)
         if self.transform:
-            if self.train:
-                # albumentation에서만 동작하는 코드입니다.
-                image = self.transform[f'{dataset}_trn'].transform(image=image)
-            else:
-                # albumentation에서만 동작하는 코드입니다.
-                image = self.transform[f'{dataset}_val'].transform(image=image)
-
-            image = image['image']
+            # if self.train:
+            #     # albumentation에서만 동작하는 코드입니다.
+            #     image = self.transform[f'{dataset}_trn'].transform(image=image)
+            # else:
+            #     # albumentation에서만 동작하는 코드입니다.
+            #     image = self.transform[f'{dataset}_tst'].transform(image=image)
+            #  # 여기서 if 문으로 잘 설정해주자 original_trn, aaf_trn
+            # image = image['image']  # albumentation 특징
+            image = self.transform[dataset](image)
         return image, label
 
     def set_transform(self, transform):
@@ -123,7 +124,16 @@ class BaseAugmentationForAAF:
     def __call__(self, image):
         return self.transform(image)
 
-###########################################################################################################
+class BaseAugmentationForCrop:
+    def __init__(self):
+        self.transform = transforms.Compose([
+            Resize((224, 224), Image.BILINEAR),
+            ToTensor(),
+            Normalize(mean=(0.5, 0.5, 0.5), std=(0.2, 0.2, 0.2)),
+        ])
+
+    def __call__(self, image):
+        return self.transform(image)
 
 
 class AlbumentationForOriginalTrn():
@@ -137,8 +147,7 @@ class AlbumentationForOriginalTrn():
                 A.Cutout(num_holes=16, max_h_size=10,
                          max_w_size=10, fill_value=0, p=1.0)
             ]),
-            A.Normalize(mean=(0.4310728, 0.460919,  0.5157363),
-                        std=(0.2456581,  0.23706429, 0.23405269)),
+            A.Normalize(mean=(0.548, 0.504, 0.479), std=(0.237, 0.247, 0.246)),
             ToTensorV2()
         ])
 
@@ -156,8 +165,7 @@ class AlbumentationForAAFTrn():
                 A.Cutout(num_holes=16, max_h_size=10,
                          max_w_size=10, fill_value=0, p=1.0)
             ]),
-            A.Normalize(mean=(0.38791922, 0.43249407, 0.5403827),
-                        std=(0.20957589, 0.22525813, 0.25735128)),
+            A.Normalize(mean=(0.548, 0.504, 0.479), std=(0.237, 0.247, 0.246)),
             ToTensorV2()
         ])
 
@@ -165,11 +173,12 @@ class AlbumentationForAAFTrn():
         return self.transform()
 
 
-class AlbumentationForOriginalVal():
+class AlbumentationForOriginalTst():
     def __init__(self):
         self.transform = A.Compose([
             # A.CenterCrop(350, 350),
             A.Resize(224, 224),
+            A.Normalize(mean=(0.548, 0.504, 0.479), std=(0.237, 0.247, 0.246)),
             ToTensorV2()
         ])
 
@@ -177,10 +186,11 @@ class AlbumentationForOriginalVal():
         return self.transform()
 
 
-class AlbumentationForAAFVal():
+class AlbumentationForAAFTst():
     def __init__(self):
         self.transform = A.Compose([
             A.Resize(224, 224),
+            A.Normalize(mean=(0.548, 0.504, 0.479), std=(0.237, 0.247, 0.246)),
             ToTensorV2()
         ])
 
@@ -193,8 +203,7 @@ class BaseAugmentationForTEST:
         self.transform = transforms.Compose([
             Resize((224, 224), Image.BILINEAR),
             ToTensor(),
-            Normalize(mean=(0.4310728, 0.460919,  0.5157363),
-                      std=(0.2456581,  0.23706429, 0.23405269)),
+            Normalize(mean=(0.5, 0.5, 0.5), std=(0.2, 0.2, 0.2)),
         ])
 
     def __call__(self, image):
@@ -208,24 +217,34 @@ def load_dataset(dataset, target, train):
     train   : True면 Train 셋, False면 Validation 셋
     '''
 
-    transform_original_trn = AlbumentationForOriginalTrn()
-    transform_original_val = AlbumentationForOriginalVal()
-    transform_aaf_trn = AlbumentationForAAFTrn()
-    transform_aaf_val = AlbumentationForAAFVal()
-    transform_test = AlbumentationForOriginalTrn()  # pseudo
+    transform_original = BaseAugmentationForOriginal()
+    transform_aaf = BaseAugmentationForAAF()
+    transform_crop = BaseAugmentationForCrop()
+    transform_test = BaseAugmentationForTEST()
 
     transform = {
-        'original_trn': transform_original_trn,
-        'original_tst': transform_original_val,
-        'aaf_trn': transform_aaf_trn,
-        'aaf_tst': transform_aaf_val,
-        'test_trn': transform_test
+        'original' : transform_original,
+        'aaf' : transform_aaf,
+        'test' : transform_test,
+        'crop' : transform_crop
+
+        # 'original_trn': transform_original_trn,
+        # 'original_tst': transform_original_tst,
+        # 'aaf_trn': transform_aaf_trn,
+        # 'aaf_tst': transform_aaf_tst,
+        # 'test_trn': transform_test
     }
+
+#     transform_original = BaseAugmentationForOriginal()
+#     transform_aaf = BaseAugmentationForAAF()
+#     transform_test = BaseAugmentationForTEST()
+#     transform = {
+#         'original': transform_original,
+#         'aaf': transform_aaf}
 
     print("loading dataset...")
     return MaskDataset(path, dataset, target, train, transform)
 
-###########################################################################################################
 
 
 class MaskLabels(int, Enum):
@@ -246,9 +265,8 @@ class GenderLabels(int, Enum):
         elif value == "female":
             return cls.FEMALE
         else:
-            raise ValueError(
-                f"Gender value should be either 'male' or 'female', {value}")
-
+            raise ValueError(f"Gender value should be either 'male' or 'female', {value}")
+    
     @classmethod
     def from_id(cls, value: str) -> int:
         if int(value) <= 7380:
@@ -256,8 +274,7 @@ class GenderLabels(int, Enum):
         elif int(value) > 7380:
             return cls.MALE
         else:
-            raise ValueError(
-                f"Gender value from id should be either 'male' or 'female', {value}")
+            raise ValueError(f"Gender value from id should be either 'male' or 'female', {value}")
 
 
 class AgeLabels(int, Enum):
@@ -279,7 +296,6 @@ class AgeLabels(int, Enum):
         else:
             return cls.OLD
 
-
 class CustomDataset(Dataset):
     num_classes = 3 * 2 * 3
 
@@ -297,9 +313,9 @@ class CustomDataset(Dataset):
     mask_labels = []
     gender_labels = []
     age_labels = []
-    all_labels = []  # -
-    indexes = []  # -
-    groups = []  # -
+    all_labels = []#-
+    indexes = []#-
+    groups = []#-
 
     def __init__(self, target, mean=(0.548, 0.504, 0.479), std=(0.237, 0.247, 0.246), val_ratio=0.2):
         self.org_dir = '/opt/ml/input/crop_train_images'
@@ -313,18 +329,20 @@ class CustomDataset(Dataset):
         self.transform = None
         self.setup()
         self.calc_statistics()
-
+        
         self.target = target
 
         if target == 'mask':
-            self.classes_num = 3  # ['wear', 'incorrect', 'normal']
+            self.classes_num = 3 #['wear', 'incorrect', 'normal']
         elif target == 'gender':
-            self.classes_num = 2  # ['male', 'female']
+            self.classes_num = 2 #['male', 'female']
         elif target == 'agegroup':
-            self.classes_num = 3  # ['young', 'middle', 'old']
+            self.classes_num = 3 #['young', 'middle', 'old']
+        
+
 
     def setup(self):
-        cnt = 0  # -
+        cnt = 0#-
         org_profiles = os.listdir(self.org_dir)
         for profile in org_profiles:
             if profile.startswith("."):  # "." 로 시작하는 파일은 무시합니다
@@ -336,8 +354,7 @@ class CustomDataset(Dataset):
                 if _file_name not in self._file_names:  # "." 로 시작하는 파일 및 invalid 한 파일들은 무시합니다
                     continue
 
-                # (resized_data, 000004_male_Asian_54, mask1.jpg)
-                img_path = os.path.join(self.org_dir, profile, file_name)
+                img_path = os.path.join(self.org_dir, profile, file_name)  # (resized_data, 000004_male_Asian_54, mask1.jpg)
                 mask_label = self._file_names[_file_name]
 
                 id, gender, race, age = profile.split("_")
@@ -348,40 +365,37 @@ class CustomDataset(Dataset):
                 self.mask_labels.append(mask_label)
                 self.gender_labels.append(gender_label)
                 self.age_labels.append(age_label)
-                self.all_labels.append(self.encode_multi_class(
-                    mask_label, gender_label, age_label))  # -
-                self.indexes.append(cnt)  # -
-                self.groups.append(id)  # -
-                cnt += 1  # -
-
+                self.all_labels.append(self.encode_multi_class(mask_label, gender_label, age_label))#-
+                self.indexes.append(cnt)#-
+                self.groups.append(id)#-
+                cnt += 1#-
+                
         aaf_profiles = os.listdir(self.aaf_dir)
         for file_name in aaf_profiles:
             if file_name.startswith("."):  # "." 로 시작하는 파일은 무시합니다
-                continue
+                continue            
 
-            # (resized_data, 000004_male_Asian_54, mask1.jpg)
-            img_path = os.path.join(self.aaf_dir, file_name)
+            img_path = os.path.join(self.aaf_dir, file_name)  # (resized_data, 000004_male_Asian_54, mask1.jpg)
             mask_label = self._file_names["normal"]
 
             id, age = os.path.splitext(file_name)[0].split('A')
             gender_label = GenderLabels.from_id(id)
             age_label = AgeLabels.from_number(age)
-
+            
             self.image_paths.append(img_path)
             self.mask_labels.append(mask_label)
             self.gender_labels.append(gender_label)
             self.age_labels.append(age_label)
-            self.all_labels.append(self.encode_multi_class(
-                mask_label, gender_label, age_label))  # -
-            self.indexes.append(cnt)  # -
-            self.groups.append(id+'a')  # -
-            cnt += 1  # -
+            self.all_labels.append(self.encode_multi_class(mask_label, gender_label, age_label))#-
+            self.indexes.append(cnt)#-
+            self.groups.append(id+'a')#-
+            cnt += 1#-
+        
 
     def calc_statistics(self):
         has_statistics = self.mean is not None and self.std is not None
         if not has_statistics:
-            print(
-                "[Warning] Calculating statistics... It can take a long time depending on your CPU machine")
+            print("[Warning] Calculating statistics... It can take a long time depending on your CPU machine")
             sums = []
             squared = []
             for image_path in self.image_paths[:3000]:
@@ -402,18 +416,17 @@ class CustomDataset(Dataset):
         mask_label = self.get_mask_label(index)
         gender_label = self.get_gender_label(index)
         age_label = self.get_age_label(index)
-        multi_class_label = self.encode_multi_class(
-            mask_label, gender_label, age_label)
-
+        multi_class_label = self.encode_multi_class(mask_label, gender_label, age_label)
+        
         image_transform = self.transform(image)
-
-        if self.target == 'mask':
+        
+        if self.target == 'mask' :
             return_classes = mask_label
-        elif self.target == 'gender':
+        elif self.target == 'gender' :
             return_classes = gender_label
-        elif self.target == 'agegroup':
+        elif self.target == 'agegroup' :
             return_classes = age_label
-
+             
         return image_transform, return_classes
 
     def __len__(self):
@@ -453,49 +466,44 @@ class CustomDataset(Dataset):
         return img_cp
 
     def split_dataset(self) -> Tuple[Subset, Subset]:
-        if self.target == 'mask':
+        if self.target == 'mask' :
             self.classes = self.mask_labels
-        elif self.target == 'gender':
+        elif self.target == 'gender' :
             self.classes = self.gender_labels
-        elif self.target == 'agegroup':
+        elif self.target == 'agegroup' :
             self.classes = self.age_labels
-
-        df = pd.DataFrame(
-            {"idxs": self.indexes, "groups": self.groups, "labels": self.classes})  # -
-
-        train, valid = train_test_apart_stratify(
-            df, group="groups", stratify="labels", test_size=self.val_ratio)  # -
-        train_index = train["idxs"].tolist()  # -
-        valid_index = valid["idxs"].tolist()  # -
-
+        
+        df = pd.DataFrame({"idxs":self.indexes, "groups":self.groups, "labels":self.classes})#-
+        
+        train, valid = train_test_apart_stratify(df, group="groups", stratify="labels", test_size=self.val_ratio)#-
+        train_index = train["idxs"].tolist()#-
+        valid_index = valid["idxs"].tolist()#-
+        
         return [Subset(self, train_index), Subset(self, valid_index)]
-
+    
     def split_dataset_Kfold(self, k) -> Tuple[Subset, Subset]:
-        if self.target == 'mask':
+        if self.target == 'mask' :
             self.classes = self.mask_labels
-        elif self.target == 'gender':
+        elif self.target == 'gender' :
             self.classes = self.gender_labels
-        elif self.target == 'agegroup':
+        elif self.target == 'agegroup' :
             self.classes = self.age_labels
-
-        df = pd.DataFrame(
-            {"idxs": self.indexes, "groups": self.groups, "labels": self.classes})  # -
-
+            
+        df = pd.DataFrame({"idxs":self.indexes, "groups":self.groups, "labels":self.classes})#-
+        
         fold_val_ratio = frac(1, int(k)).limit_denominator()
         tmp_df = df.copy()
         fold_trn = []
         fold_val = []
-
+        
         for i in range(1, int(str(frac(fold_val_ratio).limit_denominator())[-1])):
-            tmp_df, tmp_val = train_test_apart_stratify(
-                tmp_df, group="groups", stratify="labels", test_size=fold_val_ratio)  # -
+            tmp_df, tmp_val = train_test_apart_stratify(tmp_df, group="groups", stratify="labels", test_size=fold_val_ratio)#-
 
             tmp_trn = df.drop(df.index[tmp_val.index])
             fold_trn.append(tmp_trn["idxs"].tolist())
             fold_val.append(tmp_val["idxs"].tolist())
 
-            fold_val_ratio = float(
-                frac(1, int(str(frac(fold_val_ratio).limit_denominator())[-1])-1))
+            fold_val_ratio = float(frac(1, int(str(frac(fold_val_ratio).limit_denominator())[-1])-1))
             if fold_val_ratio == 1:
                 tmp_val = tmp_df
                 tmp_trn = df.drop(df.index[tmp_val.index])

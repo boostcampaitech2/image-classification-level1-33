@@ -58,29 +58,29 @@ def train(args):
     val_dataset = load_dataset(
         dataset=args.dataset, target=args.target, train=False)
 
-    trn_transform_original = getattr(import_module(
-        "dataset"), args.augmentation_original_trn)  # 원래 데이터셋에 대한 augmentation
-    val_transform_original = getattr(import_module(
-        "dataset"), args.augmentation_original_val)  # 원래 데이터셋에 대한 augmentation
+    transform_original = getattr(import_module(
+        "dataset"), args.augmentation_original)  # 원래 데이터셋에 대한 augmentation
+    
+    transform_aaf = getattr(import_module(
+        "dataset"), args.augmentation_aaf)           # 추가 데이터셋에 대한 augmentation
 
-    trn_transform_aaf = getattr(import_module(
-        "dataset"), args.augmentation_aaf_trn)           # 추가 데이터셋에 대한 augmentation
-    val_transform_aaf = getattr(import_module(
-        "dataset"), args.augmentation_aaf_val)           # 추가 데이터셋에 대한 augmentation
+    transform_crop = getattr(import_module(
+        "dataset"), args.augmentation_crop)
 
-    trn_transform = {
-        'original_trn': trn_transform_original(),
-        'aaf_trn': trn_transform_aaf(),
-        'test_trn': trn_transform_original()
-    }
-    val_transform = {
-        'original_val': val_transform_original(),
-        'aaf_val': val_transform_aaf(),
-        'test_val': trn_transform_original()
+    transform_test = getattr(import_module(
+        "dataset"), args.augmentation_test)
+
+    transform = {
+        'original': transform_original(),
+        'aaf': transform_aaf(),
+        'crop':transform_crop(),
+        'test':transform_test()
     }
 
-    trn_dataset.set_transform(trn_transform)
-    val_dataset.set_transform(val_transform)
+
+
+    trn_dataset.set_transform(transform)
+    val_dataset.set_transform(transform)
 
     trn_loader = DataLoader(
         trn_dataset, batch_size=args.batch_size, shuffle=True, num_workers=2)
@@ -95,8 +95,7 @@ def train(args):
     weights = [1-n/sum(trn_dataset.count) for n in trn_dataset.count]
     weights = torch.FloatTensor(weights).to(device)
 
-    criterion = create_criterion(
-        args.criterion, weight=weights, smoothing=0.1).cuda()
+    criterion = create_criterion(args.criterion, weight=weights).cuda()
 
     # optimizer
     optimizer_module = getattr(import_module("torch.optim"), args.optimizer)
@@ -106,15 +105,14 @@ def train(args):
     scheduler = optim.lr_scheduler.LambdaLR(
         optimizer=optimizer, lr_lambda=lambda epoch: 0.95**epoch)
 
-    # wandb.init(
-    #     project=args.project,
-    #     entity=args.entity,
-    #     config={
-    #         "learning_rate": args.lr,
-    #         "architecture": args.model,
-    #         "dataset": args.dataset,
-    #     }
-    # )
+    wandb.init(
+        project=args.project,
+        config={
+            "learning_rate": args.lr,
+            "architecture": args.model,
+            "dataset": args.dataset,
+        }
+    )
 
     best_val_acc = 0.0
     best_val_f1 = 0.0
@@ -178,25 +176,25 @@ def train(args):
             f1 = f1/len(val_loader)
 
             # 모델 저장
-            # if f1 > best_val_f1:
-            # print("New Best Model for F1 Score! saving the model...")
-            # torch.save(model.state_dict(
-            # ), f"{save_dir}/{args.model}_epoch{epoch:03}_f1_{f1:4.2%}.ckpt")
-            # best_val_f1 = f1
-
-            print("saving the Every model...")
-            torch.save(model.state_dict(
-            ), f"{save_dir}/{args.model}_epoch{epoch:03}_f1_{f1:4.2%}.ckpt")
             if f1 > best_val_f1:
+                print("New Best Model for F1 Score! saving the model...")
+                torch.save(model.state_dict(
+                ), f"{save_dir}/{args.model}_epoch{epoch:03}_f1_{f1:4.2%}.ckpt")
                 best_val_f1 = f1
 
-            # if val_acc > best_val_acc:
-            #     if f1 == best_val_f1:
-            #         continue
-            #     print("New Best Model for Acc Score! saving the model...")
-            #     torch.save(model.state_dict(
-            #     ), f"{save_dir}/{args.model}_epoch{epoch:03}_acc_{val_acc:4.2%}.ckpt")
-            #     best_val_acc = val_acc
+            # print("saving the Every model...")
+            # torch.save(model.state_dict(
+            # ), f"{save_dir}/{args.model}_epoch{epoch:03}_f1_{f1:4.2%}.ckpt")
+            # if f1 > best_val_f1:
+            #     best_val_f1 = f1
+
+            if val_acc > best_val_acc:
+                if f1 == best_val_f1:
+                    continue
+                print("New Best Model for Acc Score! saving the model...")
+                torch.save(model.state_dict(
+                ), f"{save_dir}/{args.model}_epoch{epoch:03}_acc_{val_acc:4.2%}.ckpt")
+                best_val_acc = val_acc
 
         wandb.log({"acc": acc, "loss": running_loss /
                   len(trn_loader), "val_acc": val_acc, "f1": f1})
