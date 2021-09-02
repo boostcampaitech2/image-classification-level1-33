@@ -110,3 +110,10 @@ datasets/
 .vscode/
 .idea/
 __MACOSX/
+
+# args.json 
+args.json
+results/
+wandb/
+*.ipynb
+testing.py
