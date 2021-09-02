@@ -1,4 +1,4 @@
-from dataset import load_dataset, CustomDataset, BaseAugmentationForAAF
+from dataset_final_edit import CustomDataset, CustomDataset_Pseudo, BaseAugmentationForAAF
 import easydict
 import json
 import wandb
@@ -10,19 +10,14 @@ from tqdm import tqdm
 from importlib import import_module
 from collections import Counter
 
-import pandas as pd
-from PIL import Image
 import numpy as np
 
 import torch
-import torchvision
-import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-from torchvision import models, transforms, utils
 from loss import create_criterion
 
-from torch.utils.data import Dataset, DataLoader, random_split, SubsetRandomSampler, WeightedRandomSampler
+from torch.utils.data import DataLoader
 from sklearn.metrics import f1_score
 # 현재 OS 및 라이브러리 버전 체크 체크
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -49,7 +44,7 @@ seed_everything(1004)
 
 def train(args):
     # 데이터셋 로드하기
-    dataset = CustomDataset(args.target)
+    dataset = CustomDataset_Pseudo(args.target)
     k_fold_dataset = dataset.split_dataset_Kfold(args.kfold_num)
     dataset_cnt = list(Counter([int(i) for i in dataset.classes]).values())
 

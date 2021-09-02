@@ -40,11 +40,11 @@ class TestDataset(Dataset):
 
 def inference(args):
     # 테스트 데이터셋 폴더 경로
-    test_dir = '/opt/ml/input/data/crop_eval_images'
+    test_dir_info = '/opt/ml/input/data/eval'
 
     # meta 데이터와 이미지 경로를 불러옵니다.
-    submission = pd.read_csv(os.path.join(test_dir, 'info.csv'))
-    image_dir = test_dir
+    submission = pd.read_csv(os.path.join(test_dir_info, 'info.csv'))
+    image_dir = '/opt/ml/input/crop_eval_images'
 
     # Test Dataset 클래스 객체를 생성하고 DataLoader를 만듭니다.
     image_paths = [os.path.join(image_dir, img_id)
