@@ -82,6 +82,7 @@ class MaskDataset(Dataset):
             label = self.classes.index(item['gender'])
         if self.target == 'agegroup':
             label = self.classes.index(item['agegroup'])
+
         image = np.array(image)
         if self.transform:
             if self.train:
@@ -89,9 +90,9 @@ class MaskDataset(Dataset):
                 image = self.transform[f'{dataset}_trn'].transform(image=image)
             else:
                 # albumentation에서만 동작하는 코드입니다.
-                image = self.transform[f'{dataset}_tst'].transform(image=image)
-             # 여기서 if 문으로 잘 설정해주자 original_trn, aaf_trn
-            image = image['image']  # albumentation 특징
+                image = self.transform[f'{dataset}_val'].transform(image=image)
+
+            image = image['image']
         return image, label
 
     def set_transform(self, transform):
@@ -136,7 +137,8 @@ class AlbumentationForOriginalTrn():
                 A.Cutout(num_holes=16, max_h_size=10,
                          max_w_size=10, fill_value=0, p=1.0)
             ]),
-            A.Normalize(mean=(0.548, 0.504, 0.479), std=(0.237, 0.247, 0.246)),
+            A.Normalize(mean=(0.4310728, 0.460919,  0.5157363),
+                        std=(0.2456581,  0.23706429, 0.23405269)),
             ToTensorV2()
         ])
 
@@ -154,7 +156,8 @@ class AlbumentationForAAFTrn():
                 A.Cutout(num_holes=16, max_h_size=10,
                          max_w_size=10, fill_value=0, p=1.0)
             ]),
-            A.Normalize(mean=(0.548, 0.504, 0.479), std=(0.237, 0.247, 0.246)),
+            A.Normalize(mean=(0.38791922, 0.43249407, 0.5403827),
+                        std=(0.20957589, 0.22525813, 0.25735128)),
             ToTensorV2()
         ])
 
@@ -167,7 +170,6 @@ class AlbumentationForOriginalVal():
         self.transform = A.Compose([
             # A.CenterCrop(350, 350),
             A.Resize(224, 224),
-            A.Normalize(mean=(0.548, 0.504, 0.479), std=(0.237, 0.247, 0.246)),
             ToTensorV2()
         ])
 
@@ -179,7 +181,6 @@ class AlbumentationForAAFVal():
     def __init__(self):
         self.transform = A.Compose([
             A.Resize(224, 224),
-            A.Normalize(mean=(0.548, 0.504, 0.479), std=(0.237, 0.247, 0.246)),
             ToTensorV2()
         ])
 
@@ -192,7 +193,8 @@ class BaseAugmentationForTEST:
         self.transform = transforms.Compose([
             Resize((224, 224), Image.BILINEAR),
             ToTensor(),
-            Normalize(mean=(0.5, 0.5, 0.5), std=(0.2, 0.2, 0.2)),
+            Normalize(mean=(0.4310728, 0.460919,  0.5157363),
+                      std=(0.2456581,  0.23706429, 0.23405269)),
         ])
 
     def __call__(self, image):
@@ -210,7 +212,7 @@ def load_dataset(dataset, target, train):
     transform_original_val = AlbumentationForOriginalVal()
     transform_aaf_trn = AlbumentationForAAFTrn()
     transform_aaf_val = AlbumentationForAAFVal()
-    transform_test = AlbumentationForOriginalVal()
+    transform_test = AlbumentationForOriginalTrn()  # pseudo
 
     transform = {
         'original_trn': transform_original_trn,
@@ -219,13 +221,6 @@ def load_dataset(dataset, target, train):
         'aaf_tst': transform_aaf_val,
         'test_trn': transform_test
     }
-
-#     transform_original = BaseAugmentationForOriginal()
-#     transform_aaf = BaseAugmentationForAAF()
-#     transform_test = BaseAugmentationForTEST()
-#     transform = {
-#         'original': transform_original,
-#         'aaf': transform_aaf}
 
     print("loading dataset...")
     return MaskDataset(path, dataset, target, train, transform)

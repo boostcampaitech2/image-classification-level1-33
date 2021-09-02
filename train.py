@@ -58,28 +58,29 @@ def train(args):
     val_dataset = load_dataset(
         dataset=args.dataset, target=args.target, train=False)
 
-    # trn_transform_original = getattr(import_module(
-    #     "dataset"), args.augmentation_original_trn)  # 원래 데이터셋에 대한 augmentation
-    # val_transform_original = getattr(import_module(
-    #     "dataset"), args.augmentation_original_tst)  # 원래 데이터셋에 대한 augmentation
+    trn_transform_original = getattr(import_module(
+        "dataset"), args.augmentation_original_trn)  # 원래 데이터셋에 대한 augmentation
+    val_transform_original = getattr(import_module(
+        "dataset"), args.augmentation_original_val)  # 원래 데이터셋에 대한 augmentation
 
-    # trn_transform_aaf = getattr(import_module(
-    #     "dataset"), args.augmentation_aaf_trn)           # 추가 데이터셋에 대한 augmentation
-    # val_transform_aaf = getattr(import_module(
-    #     "dataset"), args.augmentation_aaf_tst)           # 추가 데이터셋에 대한 augmentation
+    trn_transform_aaf = getattr(import_module(
+        "dataset"), args.augmentation_aaf_trn)           # 추가 데이터셋에 대한 augmentation
+    val_transform_aaf = getattr(import_module(
+        "dataset"), args.augmentation_aaf_val)           # 추가 데이터셋에 대한 augmentation
 
-    # trn_transform = {
-    #     'original': trn_transform_original(),
-    #     'aaf': val_transform_aaf()
-    # }
+    trn_transform = {
+        'original_trn': trn_transform_original(),
+        'aaf_trn': trn_transform_aaf(),
+        'test_trn': trn_transform_original()
+    }
+    val_transform = {
+        'original_val': val_transform_original(),
+        'aaf_val': val_transform_aaf(),
+        'test_val': trn_transform_original()
+    }
 
-    # val_transform = {
-    #     'original': val_transform_original(),
-    #     'aaf': val_transform_aaf()
-    # }
-
-    # trn_dataset.set_transform(trn_transform)
-    # val_dataset.set_transform(val_transform)
+    trn_dataset.set_transform(trn_transform)
+    val_dataset.set_transform(val_transform)
 
     trn_loader = DataLoader(
         trn_dataset, batch_size=args.batch_size, shuffle=True, num_workers=2)
@@ -94,7 +95,8 @@ def train(args):
     weights = [1-n/sum(trn_dataset.count) for n in trn_dataset.count]
     weights = torch.FloatTensor(weights).to(device)
 
-    criterion = create_criterion(args.criterion, weight=weights).cuda()
+    criterion = create_criterion(
+        args.criterion, weight=weights, smoothing=0.1).cuda()
 
     # optimizer
     optimizer_module = getattr(import_module("torch.optim"), args.optimizer)
@@ -104,15 +106,15 @@ def train(args):
     scheduler = optim.lr_scheduler.LambdaLR(
         optimizer=optimizer, lr_lambda=lambda epoch: 0.95**epoch)
 
-    wandb.init(
-        project=args.project,
-        entity=args.entity,
-        config={
-            "learning_rate": args.lr,
-            "architecture": args.model,
-            "dataset": args.dataset,
-        }
-    )
+    # wandb.init(
+    #     project=args.project,
+    #     entity=args.entity,
+    #     config={
+    #         "learning_rate": args.lr,
+    #         "architecture": args.model,
+    #         "dataset": args.dataset,
+    #     }
+    # )
 
     best_val_acc = 0.0
     best_val_f1 = 0.0
