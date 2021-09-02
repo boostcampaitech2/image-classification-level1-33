@@ -303,6 +303,7 @@ class CustomDataset(Dataset):
         self.aaf_dir = '/opt/ml/input/crop_aaf_images'
         # self.org_dir = '/opt/ml/input/data/train/images'
         # self.aaf_dir = '/opt/ml/input/data2/images/aligned'
+        
         self.mean = mean
         self.std = std
         self.val_ratio = val_ratio
@@ -350,6 +351,243 @@ class CustomDataset(Dataset):
                 self.indexes.append(cnt)#-
                 self.groups.append(id)#-
                 cnt += 1#-
+                
+        aaf_profiles = os.listdir(self.aaf_dir)
+        for file_name in aaf_profiles:
+            if file_name.startswith("."):  # "." 로 시작하는 파일은 무시합니다
+                continue            
+
+            img_path = os.path.join(self.aaf_dir, file_name)  # (resized_data, 000004_male_Asian_54, mask1.jpg)
+            mask_label = self._file_names["normal"]
+
+            id, age = os.path.splitext(file_name)[0].split('A')
+            gender_label = GenderLabels.from_id(id)
+            age_label = AgeLabels.from_number(age)
+            
+            self.image_paths.append(img_path)
+            self.mask_labels.append(mask_label)
+            self.gender_labels.append(gender_label)
+            self.age_labels.append(age_label)
+            self.all_labels.append(self.encode_multi_class(mask_label, gender_label, age_label))#-
+            self.indexes.append(cnt)#-
+            self.groups.append(id+'a')#-
+            cnt += 1#-
+        
+
+    def calc_statistics(self):
+        has_statistics = self.mean is not None and self.std is not None
+        if not has_statistics:
+            print("[Warning] Calculating statistics... It can take a long time depending on your CPU machine")
+            sums = []
+            squared = []
+            for image_path in self.image_paths[:3000]:
+                image = np.array(Image.open(image_path)).astype(np.int32)
+                sums.append(image.mean(axis=(0, 1)))
+                squared.append((image ** 2).mean(axis=(0, 1)))
+
+            self.mean = np.mean(sums, axis=0) / 255
+            self.std = (np.mean(squared, axis=0) - self.mean ** 2) ** 0.5 / 255
+
+    def set_transform(self, transform):
+        self.transform = transform
+
+    def __getitem__(self, index):
+        assert self.transform is not None, ".set_tranform 메소드를 이용하여 transform 을 주입해주세요"
+
+        image = self.read_image(index)
+        mask_label = self.get_mask_label(index)
+        gender_label = self.get_gender_label(index)
+        age_label = self.get_age_label(index)
+        multi_class_label = self.encode_multi_class(mask_label, gender_label, age_label)
+        
+        image_transform = self.transform(image)
+        
+        if self.target == 'mask' :
+            return_classes = mask_label
+        elif self.target == 'gender' :
+            return_classes = gender_label
+        elif self.target == 'agegroup' :
+            return_classes = age_label
+             
+        return image_transform, return_classes
+
+    def __len__(self):
+        return len(self.image_paths)
+
+    def get_mask_label(self, index) -> MaskLabels:
+        return self.mask_labels[index]
+
+    def get_gender_label(self, index) -> GenderLabels:
+        return self.gender_labels[index]
+
+    def get_age_label(self, index) -> AgeLabels:
+        return self.age_labels[index]
+
+    def read_image(self, index):
+        image_path = self.image_paths[index]
+        return Image.open(image_path)
+
+    @staticmethod
+    def encode_multi_class(mask_label, gender_label, age_label) -> int:
+        return mask_label * 6 + gender_label * 3 + age_label
+
+    @staticmethod
+    def decode_multi_class(multi_class_label) -> Tuple[MaskLabels, GenderLabels, AgeLabels]:
+        mask_label = (multi_class_label // 6) % 3
+        gender_label = (multi_class_label // 3) % 2
+        age_label = multi_class_label % 3
+        return mask_label, gender_label, age_label
+
+    @staticmethod
+    def denormalize_image(image, mean, std):
+        img_cp = image.copy()
+        img_cp *= std
+        img_cp += mean
+        img_cp *= 255.0
+        img_cp = np.clip(img_cp, 0, 255).astype(np.uint8)
+        return img_cp
+
+    def split_dataset(self) -> Tuple[Subset, Subset]:
+        if self.target == 'mask' :
+            self.classes = self.mask_labels
+        elif self.target == 'gender' :
+            self.classes = self.gender_labels
+        elif self.target == 'agegroup' :
+            self.classes = self.age_labels
+        
+        df = pd.DataFrame({"idxs":self.indexes, "groups":self.groups, "labels":self.classes})#-
+        
+        train, valid = train_test_apart_stratify(df, group="groups", stratify="labels", test_size=self.val_ratio)#-
+        train_index = train["idxs"].tolist()#-
+        valid_index = valid["idxs"].tolist()#-
+        
+        return [Subset(self, train_index), Subset(self, valid_index)]
+    
+    def split_dataset_Kfold(self, k) -> Tuple[Subset, Subset]:
+        if self.target == 'mask' :
+            self.classes = self.mask_labels
+        elif self.target == 'gender' :
+            self.classes = self.gender_labels
+        elif self.target == 'agegroup' :
+            self.classes = self.age_labels
+            
+        df = pd.DataFrame({"idxs":self.indexes, "groups":self.groups, "labels":self.classes})#-
+        
+        fold_val_ratio = frac(1, int(k)).limit_denominator()
+        tmp_df = df.copy()
+        fold_trn = []
+        fold_val = []
+        
+        for i in range(1, int(str(frac(fold_val_ratio).limit_denominator())[-1])):
+            tmp_df, tmp_val = train_test_apart_stratify(tmp_df, group="groups", stratify="labels", test_size=fold_val_ratio)#-
+
+            tmp_trn = df.drop(df.index[tmp_val.index])
+            fold_trn.append(tmp_trn["idxs"].tolist())
+            fold_val.append(tmp_val["idxs"].tolist())
+
+            fold_val_ratio = float(frac(1, int(str(frac(fold_val_ratio).limit_denominator())[-1])-1))
+            if fold_val_ratio == 1:
+                tmp_val = tmp_df
+                tmp_trn = df.drop(df.index[tmp_val.index])
+                fold_trn.append(tmp_trn["idxs"].tolist())
+                fold_val.append(tmp_val["idxs"].tolist())
+
+        return [[Subset(self, train_index), Subset(self, valid_index)] for train_index, valid_index in zip(fold_trn, fold_val)]
+
+class CustomDataset_Pseudo(Dataset):
+    num_classes = 3 * 2 * 3
+
+    _file_names = {
+        "mask1": MaskLabels.MASK,
+        "mask2": MaskLabels.MASK,
+        "mask3": MaskLabels.MASK,
+        "mask4": MaskLabels.MASK,
+        "mask5": MaskLabels.MASK,
+        "incorrect_mask": MaskLabels.INCORRECT,
+        "normal": MaskLabels.NORMAL
+    }
+
+    image_paths = []
+    mask_labels = []
+    gender_labels = []
+    age_labels = []
+    all_labels = []#-
+    indexes = []#-
+    groups = []#-
+
+    def __init__(self, target, mean=(0.548, 0.504, 0.479), std=(0.237, 0.247, 0.246), val_ratio=0.2):
+        self.org_dir = '/opt/ml/input/crop_train_images'
+        self.aaf_dir = '/opt/ml/input/crop_aaf_images'
+        # self.org_dir = '/opt/ml/input/data/train/images'
+        # self.aaf_dir = '/opt/ml/input/data2/images/aligned'
+        self.test_dir = '/opt/ml/input/crop_eval_images'
+        self.test_data = pd.read_csv("csv/df_train_for_test_idx.csv")
+
+        self.mean = mean
+        self.std = std
+        self.val_ratio = val_ratio
+
+        self.transform = None
+        self.setup()
+        self.calc_statistics()
+        
+        self.target = target
+
+        if target == 'mask':
+            self.classes_num = 3 #['wear', 'incorrect', 'normal']
+        elif target == 'gender':
+            self.classes_num = 2 #['male', 'female']
+        elif target == 'agegroup':
+            self.classes_num = 3 #['young', 'middle', 'old']
+        
+
+
+    def setup(self):
+        cnt = 0#-
+        org_profiles = os.listdir(self.org_dir)
+        for profile in org_profiles:
+            if profile.startswith("."):  # "." 로 시작하는 파일은 무시합니다
+                continue
+
+            img_folder = os.path.join(self.org_dir, profile)
+            for file_name in os.listdir(img_folder):
+                _file_name, ext = os.path.splitext(file_name)
+                if _file_name not in self._file_names:  # "." 로 시작하는 파일 및 invalid 한 파일들은 무시합니다
+                    continue
+
+                img_path = os.path.join(self.org_dir, profile, file_name)  # (resized_data, 000004_male_Asian_54, mask1.jpg)
+                mask_label = self._file_names[_file_name]
+
+                id, gender, race, age = profile.split("_")
+                gender_label = GenderLabels.from_str(gender)
+                age_label = AgeLabels.from_number(age)
+
+                self.image_paths.append(img_path)
+                self.mask_labels.append(mask_label)
+                self.gender_labels.append(gender_label)
+                self.age_labels.append(age_label)
+                self.all_labels.append(self.encode_multi_class(mask_label, gender_label, age_label))#-
+                self.indexes.append(cnt)#-
+                self.groups.append(id)#-
+                cnt += 1#-
+
+        for i, file_name in enumerate(self.test_data):          
+
+            img_path = os.path.join(self.test_dir, file_name[i]['filename'])  # (resized_data, 000004_male_Asian_54, mask1.jpg)
+            mask_label = file_name[i]['mask']
+
+            id = file_name[i]['filename']
+            gender_label = file_name[i]['gender']
+            age_label = file_name[i]['agegroup']
+            
+            self.image_paths.append(img_path)
+            self.mask_labels.append(mask_label)
+            self.gender_labels.append(gender_label)
+            self.age_labels.append(age_label)
+            self.all_labels.append(self.encode_multi_class(mask_label, gender_label, age_label))#-
+            self.indexes.append(cnt)#-
+            self.groups.append(id+'t')#-
+            cnt += 1#-
                 
         aaf_profiles = os.listdir(self.aaf_dir)
         for file_name in aaf_profiles:
