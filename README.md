@@ -59,7 +59,9 @@ lr : 0.0001
 
 lr_scheduler : LambdaLR(lr_lambda=lambda epoch: 0.95**epoch)
 
-criterion : "cross_entropy"   
+criterion : "cross_entropy"
+
+kfold_num : 5
 ```
 
 
