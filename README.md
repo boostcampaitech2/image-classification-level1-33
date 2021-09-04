@@ -32,15 +32,15 @@ augmentation_original : "BaseAugmentationForOriginal"
 augmentation_aaf : "BaseAugmentationForAAF"  
  기존 데이터셋과 추가 데이터셋의 사진들이 좀 다르기때문에 각각 Augmentation 적용
  
-batch_size : 128   
+batch_size : 64   
 
-model : "VGG"   
+model : "ResNet120"   
  훈련에 쓸 모델 클래스이름. model.py에 정의해 놓은 클래스 중 하나
  
-model_mask : "VGG"   
+model_mask : "ResNet120"
  inference 시 사용할 mask 모델
  
-model_gender : "VGG"   
+model_gender : "ResNet120"   
  inference 시 사용할 gender 모델
  
 model_age : "RESNET152"   
