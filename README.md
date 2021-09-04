@@ -104,7 +104,7 @@ BoostCamp AI TECH Level1-Ustage 33조팀원들입니다.
 
 <table>
   <tr>
-       <td align="center"><a href="https://github.com/jiwoo0212"><img src="https://user-images.githubusercontent.com/67720742/125877217-f8d4d731-e5a9-41f6-8820-5223a4d6b0c6.jpg" width="150" height="150"><br /><sub><b>유영재</b></sub></td>
+       <td align="center"><a href="https://github.com/uyeongjae"><img src="https://avatars.githubusercontent.com/u/53523319?v=4" width="150" height="150"><br /><sub><b>유영재</b></sub></td>
     <td align="center"><a href="https://github.com/jiwoo0212"><img src="https://user-images.githubusercontent.com/67720742/125877217-f8d4d731-e5a9-41f6-8820-5223a4d6b0c6.jpg" width="150" height="150"><br /><sub><b>박세진</b></sub></td>
      <td align="center"><a href="https://github.com/jiwoo0212"><img src="https://user-images.githubusercontent.com/67720742/125877217-f8d4d731-e5a9-41f6-8820-5223a4d6b0c6.jpg" width="150" height="150"><br /><sub><b>정세종</b></sub></td>
 
