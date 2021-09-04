@@ -76,7 +76,6 @@ kfold_num : 5
 ├── dataset_final_edit.py
 ├── ensemble.py
 ├── inference.py
-├── inference_age.py
 ├── loss.py
 ├── model.py
 ├── requirements.txt
@@ -88,7 +87,6 @@ kfold_num : 5
 **dataset_final_edit.py** : 전체 데이터를 로드한 후 train, validation을 나누는 dataset클래스와 transform을 정의합니다. <br><br>
 **ensemble.py** : target(agegroup, mask, gender) folds에 입력된 모델들의 soft voting을 진행합니다. <br><br>
 **inference.py** : Inference, 최종 제출 submisson.csv를 만듭니다.<br><br>
-**inference_age.py** : age만 테스트 데이터를 읽어와 줍니다. <br><br>
 **loss.py** : Label smoothing loss를 정의합니다.<br><br>
 **model.py** : ResNet152, VGG_bn 모델을 정의합니다. <br><br>
 **train.py** : train 과정을 진행합니다.<br><br>
