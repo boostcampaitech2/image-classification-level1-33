@@ -55,7 +55,9 @@ model_age_dir : "./results/age/013_f177.78%.ckpt"
 
 optimizer : "Adam"   
 
-lr : 0.0001   
+lr : 0.0001
+
+lr_scheduler : LambdaLR(lr_lambda=lambda epoch: 0.95**epoch)
 
 criterion : "cross_entropy"   
 ```
@@ -79,10 +81,10 @@ criterion : "cross_entropy"
 ├── train.py
 ├── train_kfold.py
 ```
-**args.json** : train시 필요한 arg입니다.<br><br>
-**dataset.py** : traindata, validate 데이터를 다로 로드해오는 dataset클래스와 transform을 정의합니다.<br><br>
-**dataset_final_edit.py** : 전체 데이터를 통으로 read하는 dataset클래스와 transform을 정의합니다. <br><br>
-**ensemble.py** : agegroup_fold들에 입력된 모델들의 soft voting을 진행합니다. <br><br>
+**args.json** : train시 필요한 arguments입니다.<br><br>
+**dataset.py** : train, validation 데이터를 csv 파일을 바탕으로 로드하는 dataset클래스와 transform을 정의합니다.<br><br>
+**dataset_final_edit.py** : 전체 데이터를 로드한 후 train, validation을 나누는 dataset클래스와 transform을 정의합니다. <br><br>
+**ensemble.py** : target(agegroup, mask, gender) folds에 입력된 모델들의 soft voting을 진행합니다. <br><br>
 **inference.py** : Inference, 최종 제출 submisson.csv를 만듭니다.<br><br>
 **inference_age.py** : age만 테스트 데이터를 읽어와 줍니다. <br><br>
 **loss.py** : Label smoothing loss를 정의합니다.<br><br>
