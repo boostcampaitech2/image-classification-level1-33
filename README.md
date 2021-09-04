@@ -4,6 +4,8 @@
 ## 사용법
 ```bash
 python train.py
+or
+python train_kfold.py
 ```
 
 ### args.json에 대한 설명입니다.
@@ -95,14 +97,14 @@ BoostCamp AI TECH Level1-Ustage 33조팀원들입니다.
 <table>
   <tr>
     <td align="center"><a href="https://github.com/jiwoo0212"><img src="https://user-images.githubusercontent.com/67720742/125877217-f8d4d731-e5a9-41f6-8820-5223a4d6b0c6.jpg" width="150" height="150"><br /><sub><b>강지우</b></sub></td>
-    <td align="center"><a href="https://github.com/jiwoo0212"><img src="https://user-images.githubusercontent.com/67720742/125877217-f8d4d731-e5a9-41f6-8820-5223a4d6b0c6.jpg" width="150" height="150"><br /><sub><b>강지우</b></sub></td>
-     <td align="center"><a href="https://github.com/jiwoo0212"><img src="https://user-images.githubusercontent.com/67720742/125877217-f8d4d731-e5a9-41f6-8820-5223a4d6b0c6.jpg" width="150" height="150"><br /><sub><b>강지우</b></sub></td>
+    <td align="center"><a href="https://blog.naver.com/7tkfkd"><img src="https://ifh.cc/g/puHQTP.jpg" width="150" height="150"><br /><sub><b>김성민</b></sub></td>
+     <td align="center"><a href="https://github.com/jiwoo0212"><img src="https://user-images.githubusercontent.com/67720742/125877217-f8d4d731-e5a9-41f6-8820-5223a4d6b0c6.jpg" width="150" height="150"><br /><sub><b>남세현</b></sub></td>
   </tr>
 </table>
 
 <table>
   <tr>
-       <td align="center"><a href="https://github.com/jiwoo0212"><img src="https://user-images.githubusercontent.com/67720742/125877217-f8d4d731-e5a9-41f6-8820-5223a4d6b0c6.jpg" width="150" height="150"><br /><sub><b>강지우</b></sub></td>
-    <td align="center"><a href="https://github.com/jiwoo0212"><img src="https://user-images.githubusercontent.com/67720742/125877217-f8d4d731-e5a9-41f6-8820-5223a4d6b0c6.jpg" width="150" height="150"><br /><sub><b>강지우</b></sub></td>
-     <td align="center"><a href="https://github.com/jiwoo0212"><img src="https://user-images.githubusercontent.com/67720742/125877217-f8d4d731-e5a9-41f6-8820-5223a4d6b0c6.jpg" width="150" height="150"><br /><sub><b>강지우</b></sub></td>
+       <td align="center"><a href="https://github.com/jiwoo0212"><img src="https://user-images.githubusercontent.com/67720742/125877217-f8d4d731-e5a9-41f6-8820-5223a4d6b0c6.jpg" width="150" height="150"><br /><sub><b>유영재</b></sub></td>
+    <td align="center"><a href="https://github.com/jiwoo0212"><img src="https://user-images.githubusercontent.com/67720742/125877217-f8d4d731-e5a9-41f6-8820-5223a4d6b0c6.jpg" width="150" height="150"><br /><sub><b>박세진</b></sub></td>
+     <td align="center"><a href="https://github.com/jiwoo0212"><img src="https://user-images.githubusercontent.com/67720742/125877217-f8d4d731-e5a9-41f6-8820-5223a4d6b0c6.jpg" width="150" height="150"><br /><sub><b>정세종</b></sub></td>
 
