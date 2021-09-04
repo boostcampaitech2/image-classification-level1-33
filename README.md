@@ -78,15 +78,15 @@ criterion : "cross_entropy"
 ├── train_kfold.py
 ```
 **args.json** : train시 필요한 arg입니다.<br><br>
-**dataset.py** : dataset클래스와 transform을 정의합니다.<br><br>
-**dataset_final_edit.py** :  적어주세요! <br><br>
-**ensemble.py** : 적어주세요! <br><br>
+**dataset.py** : traindata, validate 데이터를 다로 로드해오는 dataset클래스와 transform을 정의합니다.<br><br>
+**dataset_final_edit.py** : 전체 데이터를 통으로 read하는 dataset클래스와 transform을 정의합니다. <br><br>
+**ensemble.py** : agegroup_fold들에 입력된 모델들의 soft voting을 진행합니다. <br><br>
 **inference.py** : Inference, 최종 제출 submisson.csv를 만듭니다.<br><br>
-**inference_age.py** : 적어주세요! <br><br>
+**inference_age.py** : age만 테스트 데이터를 읽어와 줍니다. <br><br>
 **loss.py** : Label smoothing loss를 정의합니다.<br><br>
 **model.py** : ResNet152, VGG_bn 모델을 정의합니다. <br><br>
 **train.py** : train 과정을 진행합니다.<br><br>
-**train_kfold.py** : 적어주세요! <br><br>
+**train_kfold.py** : kfold가 적용된 train을 진행합니다. <br><br>
 <br>
 
 ## Contributors
